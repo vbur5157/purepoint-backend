@@ -1,30 +1,36 @@
-
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import openai
 import os
-from dotenv import load_dotenv
 
-load_dotenv()
 app = Flask(__name__)
 CORS(app)
 
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
-@app.route("/chat", methods=["POST"])
-def chat():
-    data = request.get_json()
-    user_input = data.get("message", "")
+@app.route("/", methods=["GET"])
+def home():
+    return "PurePoint AI Backend is running!"
 
+@app.route("/ask-anansi", methods=["POST"])
+def ask_anansi():
     try:
-        response = openai.ChatCompletion.create(
-            model="gpt-4",
+        data = request.get_json()
+        prompt = data.get("prompt")
+        if not prompt:
+            return jsonify({"error": "No prompt provided"}), 400
+
+        response = openai.chat.completions.create(
+            model="gpt-4o",
             messages=[
-                {"role": "system", "content": "You are Anansi, a professional yet sarcastically humorous AI assistant."},
-                {"role": "user", "content": user_input}
-            ]
+                {"role": "system", "content": "You are Anansi, a helpful, sarcastic, and professional assistant for PurePoint."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.7
         )
-        reply = response["choices"][0]["message"]["content"]
-        return jsonify({"reply": reply})
+        return jsonify({"response": response.choices[0].message.content.strip()})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
