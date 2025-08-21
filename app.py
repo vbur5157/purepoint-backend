@@ -34,3 +34,26 @@ def ask_anansi():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
+import zipfile
+import requests
+
+@app.route("/webhook", methods=["POST"])
+def github_webhook():
+    try:
+        # Step 1: Download latest update zip from GitHub repo
+        zip_url = "https://github.com/<your-username>/<repo-name>/raw/main/anansi-update.zip"
+        response = requests.get(zip_url)
+        zip_path = "anansi-update.zip"
+        with open(zip_path, "wb") as f:
+            f.write(response.content)
+
+        # Step 2: Extract the ZIP
+        with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+            zip_ref.extractall("anansi_modules")
+
+        # Step 3: (Optional) Execute update.py from bundle
+        exec(open("anansi_modules/update.py").read(), globals())
+
+        return jsonify({"status": "Update applied successfully"}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
